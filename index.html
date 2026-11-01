@@ -107,7 +107,7 @@ details.all summary{cursor:pointer;font-weight:700}
       <button class="sub" id="bExp">保存(JSON)</button>
       <button class="sub" id="bImp">読み込み</button>
       <button class="sub" id="bPrint">印刷</button>
-      <button class="sub" id="bForget">覚えたパスワードを消す</button>
+      <button class="sub" id="bForget">覚えたパスワードを消して他の人に見られないようにする</button>
       <button class="sub" id="bWipe">すべて消去</button>
       <input type="file" id="file" accept=".json,application/json" hidden>
     </div>
@@ -424,10 +424,10 @@ function say(msg,okFn,okLabel){
   ok.onclick=()=>{close();if(okFn)okFn()};
   f.appendChild(ok);m.appendChild(f);$('ov').classList.remove('hidden');
 }
-$('bForget').onclick=()=>say('この端末に覚えさせたパスワードをすべて消します。ロックは解除されず、次回から再入力が必要になります。',()=>{
+$('bForget').onclick=()=>say('この端末に覚えさせたパスワードをすべて消し、ロックされたマスを他の人に見られないようにします。\nノートは消えません。次に開くときは、パスワードの入力が必要になります。',()=>{
   setMem({});Object.keys(U).forEach(k=>delete U[k]);render();
-  say('覚えたパスワードを消しました。');
-},'消す');
+  say('覚えたパスワードを消しました。ロックされたマスは、パスワードなしでは開けません。');
+},'消して隠す');
 async function autoUnlock(){
   const m=getMem();
   for(const q of S.sq){
