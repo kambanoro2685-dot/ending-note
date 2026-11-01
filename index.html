@@ -156,7 +156,7 @@ details.all summary{cursor:pointer;font-weight:700}
 <h3>6. 第三者への提供・目的外利用</h3>
 <p>運営者は情報を受け取らないため、第三者に提供することも、利用することもありません。</p>
 <h3>7. 削除の方法</h3>
-<p>画面上部の「すべて消去」ボタン、またはブラウザの「サイトデータの削除」で、この端末のノートとパスワードを消せます。消去したものは元に戻せません。</p>
+<p>画面上部の「すべて消去」ボタン、またはブラウザの「サイトデータの削除」で、この端末のノートとパスワードを消せます。「すべて消去」には、あなたが最初に決める「消去用パスワード」が必要です（忘れた場合は、ブラウザのサイトデータの削除をお使いください）。消去したものは元に戻せません。</p>
 <h3>8. 他人の個人情報について</h3>
 <p>ノートに家族・友人など他の方の氏名や連絡先を書く場合は、その方への配慮をお願いします。</p>
 
@@ -449,11 +449,44 @@ $('file').onchange=e=>{
 };
 
 /* ---- ノートの全消去 ---- */
-$('bWipe').onclick=()=>say('この端末に保存されたノートと、覚えさせたパスワードをすべて消します。元に戻せません。よろしいですか？',()=>{
-  try{localStorage.removeItem('endingNote');localStorage.removeItem('endingNotePw')}catch(e){}
-  S={sq:DEFAULTS.map(mk)};Object.keys(U).forEach(k=>delete U[k]);pos=0;render();
-  say('すべて消去しました。');
-},'すべて消す');
+/* 入力欄つきダイアログ。onOk は入力値の配列を受け取り、エラー文を返すか、成功時は自分で close() する */
+function formDlg(title,msg,labels,okLabel,onOk){
+  const m=$('modal');m.textContent='';
+  const h=el('div','mh');h.style.setProperty('--bgc','var(--c-start)');h.appendChild(el('h2',null,title));m.appendChild(h);
+  const b=el('div','mb');b.appendChild(el('div','body',msg));
+  const ins=labels.map(t=>{b.appendChild(el('label',null,t));const i=el('input');i.type='password';i.autocomplete='off';b.appendChild(i);return i});
+  const err=el('p','hint','');err.style.color='#b9323a';b.appendChild(err);m.appendChild(b);
+  const f=el('div','mf');
+  const c=el('button','sub','やめる');c.onclick=close;
+  const ok=el('button','danger',okLabel);
+  const go=async()=>{ok.disabled=true;err.textContent=(await onOk(ins.map(i=>i.value)))||'';ok.disabled=false};
+  ok.onclick=go;ins[ins.length-1].onkeydown=e=>{if(e.key==='Enter')go()};
+  f.append(c,ok);m.appendChild(f);$('ov').classList.remove('hidden');ins[0].focus();
+}
+async function wipeHash(pw,salt){
+  const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveBits']);
+  return b64(new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:150000,hash:'SHA-256'},k,256)));
+}
+const getWipe=()=>{try{return JSON.parse(localStorage.getItem('endingNoteWipe')||'null')}catch(e){return null}};
+$('bWipe').onclick=()=>{
+  const rec=getWipe();
+  if(!rec){
+    formDlg('消去用パスワードの設定','「すべて消去」を使うには、先に消去用パスワードを決めてください。他の人にノートを消されないためのものです。\n忘れると、このボタンでは消せなくなります（その場合は、ブラウザの「サイトデータの削除」で消せます）。',['新しいパスワード（4文字以上）','もう一度入力'],'設定する',async v=>{
+      if(v[0].length<4)return '4文字以上で入力してください。';
+      if(v[0]!==v[1])return '2つが一致しません。';
+      const salt=crypto.getRandomValues(new Uint8Array(16));
+      try{localStorage.setItem('endingNoteWipe',JSON.stringify({s:b64(salt),h:await wipeHash(v[0],salt)}))}catch(e){return 'この環境では設定を保存できませんでした。'}
+      close();say('消去用パスワードを設定しました。もう一度「すべて消去」を押すと、消去できます。');
+    });
+    return;
+  }
+  formDlg('すべて消去','この端末に保存されたノートと、覚えさせたパスワードをすべて消します。元に戻せません。\n消去用パスワードを入力してください。',['消去用パスワード'],'すべて消す',async v=>{
+    if(await wipeHash(v[0],unb(rec.s))!==rec.h)return 'パスワードがちがいます。';
+    try{localStorage.removeItem('endingNote');localStorage.removeItem('endingNotePw')}catch(e){}
+    S={sq:DEFAULTS.map(mk)};Object.keys(U).forEach(k=>delete U[k]);pos=0;render();
+    close();say('すべて消去しました。');
+  });
+};
 
 /* ---- 利用規約・プライバシーポリシーへの同意（最後まで読まないとチェック不可） ---- */
 const TV='2026-11-01';
