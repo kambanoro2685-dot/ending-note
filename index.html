@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>わたしの人生すごろく</title>
+<style>
+:root{
+  --bg:#fff8ee;--ink:#3a3128;--card:#fffdf8;--line:#ecd9bd;--accent:#e8743b;--sub:#8a7b6a;
+  --c-start:#ffe08a;--c-life:#ffd0dc;--c-heart:#ffe7b5;--c-med:#c9e8ff;--c-money:#c8efc3;--c-funeral:#ddd3f2;--c-people:#ffd2b8;--c-goal:#ffcf5c;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#1d1814;--ink:#f1e8dc;--card:#2a231d;--line:#4a3d31;--accent:#f08a55;--sub:#b3a592;
+  --c-start:#6e5a1c;--c-life:#6b3447;--c-heart:#6b5424;--c-med:#254c6b;--c-money:#2f5a2c;--c-funeral:#463a6b;--c-people:#6b4126;--c-goal:#8a6a14}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Maru Gothic ProN","Yu Gothic","Meiryo",sans-serif;min-height:100vh}
+button{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:.6em 1.1em;background:var(--accent);color:#fff;font-weight:700;box-shadow:0 3px 0 rgba(0,0,0,.2)}
+button:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.2)}
+button:disabled{opacity:.45;cursor:default}
+button.sub{background:var(--card);color:var(--ink);border:2px solid var(--line)}
+button.danger{background:#b9323a}
+.wrap{max-width:1000px;margin:0 auto;padding:16px}
+header{text-align:center;margin:6px 0 14px}
+header h1{margin:0;font-size:1.6rem;font-family:"Yu Mincho","Hiragino Mincho ProN",serif;letter-spacing:.12em}
+header p{margin:4px 0 0;color:var(--sub);font-size:.9rem}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.seg{display:flex;gap:6px}
+.seg button{background:var(--card);color:var(--ink);border:2px solid var(--line);box-shadow:none}
+.seg button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.prog{flex:1;min-width:180px;max-width:360px}
+.prog small{color:var(--sub)}
+.meter{height:12px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:3px}
+.meter i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+.tools{display:flex;gap:6px;flex-wrap:wrap}
+.tools button{padding:.4em .8em;font-size:.85rem}
+.board{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:14px}
+#grid{display:grid;gap:12px}
+.cell{position:relative;border-radius:14px;padding:8px 6px 6px;min-height:92px;text-align:center;cursor:pointer;border:3px solid rgba(0,0,0,.18);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:var(--bgc);color:var(--ink);box-shadow:0 3px 0 rgba(0,0,0,.14);font:inherit;font-weight:700}
+.cell .no{position:absolute;top:3px;left:6px;font-size:.7rem;opacity:.6}
+.cell .arr{position:absolute;bottom:2px;right:6px;font-size:.8rem;opacity:.55}
+.cell .ic{font-size:1.5rem;line-height:1}
+.cell .tt{font-size:.78rem;line-height:1.25}
+.cell .st{font-size:.68rem;font-weight:400;opacity:.75}
+.cell.empty{border-style:dashed;opacity:.72}
+.cell.filled .st{opacity:1;font-weight:700}
+.cell.here{outline:4px solid var(--accent);outline-offset:2px}
+.token{position:absolute;top:-14px;right:-6px;font-size:1.7rem;filter:drop-shadow(0 2px 2px rgba(0,0,0,.35));animation:bob .6s infinite alternate;pointer-events:none}
+@keyframes bob{to{transform:translateY(-4px)}}
+.play{display:flex;align-items:center;gap:14px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+.dice{width:64px;height:64px;border-radius:14px;background:#fff;color:#333;border:3px solid #333;font-size:2rem;font-weight:800;display:flex;align-items:center;justify-content:center}
+.dice.roll{animation:shake .15s infinite}
+@keyframes shake{50%{transform:rotate(12deg)}}
+.hint{color:var(--sub);font-size:.85rem;text-align:center;margin:10px 0 0}
+details.all{margin-top:16px;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:10px 14px}
+details.all summary{cursor:pointer;font-weight:700}
+.li{padding:8px 0;border-bottom:1px dashed var(--line)}
+.li b{display:block}
+.li p{margin:4px 0 0;white-space:pre-wrap;color:var(--ink)}
+.li p.none{color:var(--sub)}
+.note{color:var(--sub);font-size:.8rem;text-align:center;margin-top:14px}
+/* modal */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:14px;z-index:10}
+.ov.hidden{display:none}
+.modal{background:var(--card);border-radius:18px;max-width:520px;width:100%;max-height:90vh;overflow:auto;border:3px solid var(--line)}
+.mh{padding:12px 16px;background:var(--bgc);border-radius:15px 15px 0 0;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.mh small{opacity:.75}
+.mh h2{margin:0;font-size:1.2rem}
+.mb{padding:14px 16px}
+.mb .body{white-space:pre-wrap;line-height:1.8;min-height:5em}
+.mb .body.none{color:var(--sub)}
+.mb label{display:block;font-size:.85rem;color:var(--sub);margin:10px 0 3px}
+.mb input,.mb select,.mb textarea{width:100%;font:inherit;padding:.5em;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink)}
+.mb textarea{min-height:9em;resize:vertical}
+.q{background:var(--bg);border-radius:10px;padding:8px 10px;font-size:.85rem;color:var(--sub);margin-bottom:6px}
+.mf{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;padding:0 16px 14px}
+.mf .l{margin-right:auto;display:flex;gap:6px}
+.goalfx{text-align:center;font-size:2rem;padding-top:8px}
+@media(max-width:600px){header h1{font-size:1.3rem}}
+@media print{
+  .bar,.board,.play,.hint,.ov,.note{display:none!important}
+  details.all{border:0}details.all>*{display:block}
+  body{background:#fff;color:#000}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>わたしの人生すごろく</h1>
+    <p>エンディングノートを、人生ゲームのマスにして書き残そう</p>
+  </header>
+
+  <div class="bar">
+    <div class="seg">
+      <button id="mWrite" class="on">✎ 書く</button>
+      <button id="mRead">🎲 すごろくで読む</button>
+    </div>
+    <div class="prog"><small id="progTxt"></small><div class="meter"><i id="progBar"></i></div></div>
+    <div class="tools">
+      <button class="sub" id="bAdd">＋ マスを足す</button>
+      <button class="sub" id="bExp">保存(JSON)</button>
+      <button class="sub" id="bImp">読み込み</button>
+      <button class="sub" id="bPrint">印刷</button>
+      <button class="sub" id="bForget">覚えたパスワードを消す</button>
+      <button class="sub" id="bG">Googleでログイン</button>
+      <button class="sub" id="bGcfg">Google設定</button>
+      <input type="file" id="file" accept=".json,application/json" hidden>
+    </div>
+  </div>
+
+  <div class="board">
+    <div id="grid"></div>
+    <div class="play" id="play" hidden>
+      <div class="dice" id="dice">🎲</div>
+      <button id="bRoll">ルーレットをまわす</button>
+      <button class="sub" id="bReset">スタートにもどる</button>
+    </div>
+    <p class="hint" id="hint"></p>
+  </div>
+
+  <details class="all" id="all">
+    <summary>ノートを一覧で見る（印刷用）</summary>
+    <div id="list"></div>
+  </details>
+
+  <p class="note">内容はこの端末のブラウザ内にだけ保存されます。暗証番号・パスワードそのものは書かず、「どこに控えがあるか」を書きましょう。</p>
+</div>
+
+<div class="ov hidden" id="ov"><div class="modal" id="modal"></div></div>
+
+<script>
+const CATS={
+  start:{n:'プロフィール',i:'🚩'},
+  life:{n:'自分史',i:'📖'},
+  heart:{n:'想い・好きなもの',i:'💗'},
+  med:{n:'医療・介護',i:'🏥'},
+  money:{n:'お金・手続き',i:'💰'},
+  funeral:{n:'葬儀・お墓',i:'🕊️'},
+  people:{n:'大切な人へ',i:'👪'},
+  goal:{n:'ゴール',i:'🏁'}
+};
+const DEFAULTS=[
+ ['start','わたしのこと','名前、生年月日、血液型、出身地、呼ばれたいあだ名など'],
+ ['life','生まれたころ','生まれた町、家族、名前の由来、小さい頃の話'],
+ ['life','子ども時代','夢中になった遊び、忘れられない思い出'],
+ ['life','学生時代','友だち、部活、恩師、青春の思い出'],
+ ['life','仕事','どんな仕事をしてきたか、誇れること、苦労したこと'],
+ ['people','出会い・家族','配偶者や家族との出会い、家族への思い'],
+ ['heart','宝物','大切にしている物、しまってある場所'],
+ ['heart','好きなもの','好きな食べ物・音楽・場所・本・趣味'],
+ ['heart','やり残し','やってみたいこと、行きたかった場所'],
+ ['med','かかりつけ・持病','病院名、飲んでいる薬、アレルギー、保険証の場所'],
+ ['med','告知・延命治療','病名や余命の告知を希望するか、延命治療をどうしたいか'],
+ ['med','介護の希望','誰に・どこで介護を受けたいか、施設の希望、認知症になったときの希望'],
+ ['money','預貯金・資産','金融機関名、不動産、株など（口座番号の控えの場所でも可）'],
+ ['money','保険・年金','加入している保険会社、年金の種類、連絡先'],
+ ['money','ネット契約・サブスク','スマホ、SNS、ネット銀行、定期課金。※パスワードは書かず、控えの場所だけ'],
+ ['money','大切な書類の場所','通帳、印鑑、遺言書、権利書などをしまっている場所'],
+ ['funeral','葬儀の希望','家族葬・一般葬など、呼んでほしい人、予算、宗教・宗派'],
+ ['funeral','遺影・音楽・花','使ってほしい写真、流してほしい曲、好きな花'],
+ ['funeral','お墓・供養','お墓の場所、納骨・散骨などの希望、お墓の管理を頼みたい人'],
+ ['people','連絡してほしい人','名前、関係、連絡先'],
+ ['people','形見分け・ペット','形見として渡したい物と相手、ペットのお世話のお願い'],
+ ['people','家族へのメッセージ','家族ひとりひとりへの言葉'],
+ ['goal','ありがとう','最後のひとこと。読んでくれた人へ']
+];
+const mk=(a,i)=>({id:'d'+i,cat:a[0],title:a[1],hint:a[2],text:''});
+const G={tok:null,fileId:null,t:0};
+let S=load();
+let mode='write',pos=0,busy=false;
+
+function load(){
+  try{const v=JSON.parse(localStorage.getItem('endingNote')||'null');if(v&&Array.isArray(v.sq)&&v.sq.length>1)return v}catch(e){}
+  return {sq:DEFAULTS.map(mk)};
+}
+function save(){
+  try{localStorage.setItem('endingNote',JSON.stringify(S))}catch(e){}
+  if(G.tok){clearTimeout(G.t);G.t=setTimeout(()=>gPush().catch(()=>{}),1500)}
+}
+const $=id=>document.getElementById(id);
+function el(t,c,x){const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
+const col=c=>'var(--c-'+c+')';
+const filled=q=>!!q.enc||q.text.trim().length>0;
+const U={};/* 解錠済みマスの {pw,text}。画面を閉じると消える */
+/* 「この端末で覚える」を選んだマスのパスワード（この端末のブラウザ内のみ） */
+function getMem(){try{return JSON.parse(localStorage.getItem('endingNotePw')||'{}')}catch(e){return {}}}
+function setMem(m){try{localStorage.setItem('endingNotePw',JSON.stringify(m))}catch(e){}}
+function remember(id,pw){const m=getMem();if(pw)m[id]=pw;else delete m[id];setMem(m)}
+const txt=q=>q.enc?(U[q.id]?U[q.id].text:''):q.text;
+const locked=q=>!!q.enc&&!U[q.id];
+const b64=u=>btoa(String.fromCharCode(...u)),unb=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function mkKey(pw,salt){
+  const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:150000,hash:'SHA-256'},k,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function encText(text,pw){
+  const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},await mkKey(pw,salt),new TextEncoder().encode(text));
+  return {s:b64(salt),i:b64(iv),c:b64(new Uint8Array(ct))};
+}
+async function decText(e,pw){
+  const p=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb(e.i)},await mkKey(pw,unb(e.s)),unb(e.c));
+  return new TextDecoder().decode(p);
+}
+
+function cols(){const w=$('grid').parentElement.clientWidth;return w>=820?6:w>=560?4:3}
+
+function render(){
+  const g=$('grid'),n=S.sq.length,C=cols();
+  g.style.gridTemplateColumns='repeat(%d,1fr)'.replace('%d',C);
+  g.textContent='';
+  S.sq.forEach((q,i)=>{
+    const row=Math.floor(i/C);let c=i%C;if(row%2)c=C-1-c;
+    const b=el('button','cell '+(filled(q)?'filled':'empty')+(mode==='read'&&i===pos?' here':''));
+    b.style.setProperty('--bgc',col(q.cat));
+    b.style.gridRow=row+1;b.style.gridColumn=c+1;
+    b.appendChild(el('span','no',i===0?'START':i===n-1?'GOAL':i));
+    b.appendChild(el('span','ic',CATS[q.cat].i));
+    b.appendChild(el('span','tt',q.title));
+    b.appendChild(el('span','st',q.enc?(locked(q)?'🔒 ロック中':'🔓 ロック設定ずみ'):filled(q)?'✓ 記入ずみ':'まだ空白'));
+    if(i<n-1){
+      const nr=Math.floor((i+1)/C);
+      b.appendChild(el('span','arr',nr!==row?'↓':row%2?'←':'→'));
+    }
+    if(mode==='read'&&i===pos)b.appendChild(el('span','token','🚗'));
+    b.onclick=()=>mode==='write'?openEdit(i):openCard(i);
+    g.appendChild(b);
+  });
+  const done=S.sq.filter(filled).length;
+  $('progTxt').textContent='ノート完成度 '+done+' / '+n+' マス';
+  $('progBar').style.width=(done/n*100)+'%';
+  $('play').hidden=mode!=='read';
+  $('hint').textContent=mode==='write'?'マスをタップして、その項目を書き込みます。空白でも大丈夫、書けるところから。':'ルーレットで進むと、止まったマスのイベントカードが開きます。マスを直接タップしても読めます。';
+  $('mWrite').classList.toggle('on',mode==='write');
+  $('mRead').classList.toggle('on',mode==='read');
+  const L=$('list');L.textContent='';
+  S.sq.forEach(q=>{
+    const d=el('div','li');
+    d.appendChild(el('b',null,CATS[q.cat].i+' '+q.title+'（'+CATS[q.cat].n+'）'));
+    d.appendChild(el('p',filled(q)&&!locked(q)?'':'none',locked(q)?'🔒 ロック中（パスワードが必要です）':filled(q)?txt(q):'（未記入）'));
+    L.appendChild(d);
+  });
+}
+
+function modal(i,build){
+  const q=S.sq[i],m=$('modal');m.textContent='';
+  const h=el('div','mh');h.style.setProperty('--bgc',col(q.cat));
+  const t=el('div');
+  t.appendChild(el('small',null,CATS[q.cat].i+' '+CATS[q.cat].n+(i>0&&i<S.sq.length-1?' ／ '+i+'マス目':'')));
+  t.appendChild(el('h2',null,q.title));
+  h.appendChild(t);m.appendChild(h);
+  build(m,q);
+  $('ov').classList.remove('hidden');
+}
+function close(){$('ov').classList.add('hidden')}
+$('ov').addEventListener('click',e=>{if(e.target===$('ov'))close()});
+
+function askPw(i,then){
+  modal(i,(m,q)=>{
+    const b=el('div','mb');
+    b.appendChild(el('div','q','🔒 このマスはパスワードでロックされています'));
+    const inp=el('input');inp.type='password';inp.placeholder='パスワード';b.appendChild(inp);
+    const rl=el('label');const rc=el('input');rc.type='checkbox';rc.style.width='auto';rc.style.marginRight='6px';
+    rl.append(rc,'この端末では次回から自動で開く');b.appendChild(rl);
+    const msg=el('p','hint','');b.appendChild(msg);m.appendChild(b);
+    const f=el('div','mf');
+    const c=el('button','sub','やめる');c.onclick=close;
+    const ok=el('button',null,'開く');
+    const go=async()=>{
+      try{U[q.id]={pw:inp.value,text:await decText(q.enc,inp.value)};if(rc.checked)remember(q.id,inp.value);close();render();then()}
+      catch(e){msg.textContent='パスワードがちがいます。'}
+    };
+    ok.onclick=go;inp.onkeydown=e=>{if(e.key==='Enter')go()};
+    f.append(c,ok);m.appendChild(f);inp.focus();
+  });
+}
+
+function openCard(i){
+  const q0=S.sq[i];if(locked(q0))return askPw(i,()=>openCard(i));
+  modal(i,(m,q)=>{
+    const b=el('div','mb');
+    if(i===S.sq.length-1&&mode==='read')b.appendChild(el('div','goalfx','🎉 ゴール 🎉'));
+    b.appendChild(el('div','body'+(filled(q)?'':' none'),filled(q)?txt(q):'このマスはまだ書かれていません。'));
+    m.appendChild(b);
+    const f=el('div','mf');
+    const ed=el('button','sub','✎ 書き足す');ed.onclick=()=>openEdit(i);
+    const ok=el('button',null,'とじる');ok.onclick=close;
+    f.append(ed,ok);m.appendChild(f);
+  });
+}
+
+function openEdit(i){
+  const q0=S.sq[i];if(locked(q0))return askPw(i,()=>openEdit(i));
+  modal(i,(m,q)=>{
+    const b=el('div','mb');
+    b.appendChild(el('div','q','書くヒント：'+q.hint));
+    b.appendChild(el('label',null,'マスの名前'));
+    const ti=el('input');ti.value=q.title;b.appendChild(ti);
+    const custom=i>0&&i<S.sq.length-1;
+    let sel;
+    if(custom){
+      b.appendChild(el('label',null,'種類'));
+      sel=el('select');
+      Object.keys(CATS).filter(k=>k!=='start'&&k!=='goal').forEach(k=>{
+        const o=el('option',null,CATS[k].i+' '+CATS[k].n);o.value=k;sel.appendChild(o);
+      });
+      sel.value=q.cat;b.appendChild(sel);
+    }
+    b.appendChild(el('label',null,'内容'));
+    const ta=el('textarea');ta.value=txt(q);ta.placeholder=q.hint;b.appendChild(ta);
+    b.appendChild(el('label',null,'🔒 このマスのパスワード（空欄ならロックなし）'));
+    const pw=el('input');pw.type='password';pw.autocomplete='new-password';pw.value=q.enc?U[q.id].pw:'';b.appendChild(pw);
+    b.appendChild(el('p','hint','パスワードを忘れると、このマスは誰にも読めなくなります。他のマスとは別のパスワードにできます。'));
+    m.appendChild(b);
+    const f=el('div','mf'),l=el('div','l');
+    if(custom){
+      const up=el('button','sub','◀ 前へ'),dn=el('button','sub','後ろへ ▶'),del=el('button','danger','削除');
+      const mv=async d=>{const j=i+d;if(j<1||j>S.sq.length-2)return;await commit();[S.sq[i],S.sq[j]]=[S.sq[j],S.sq[i]];save();render();openEdit(j)};
+      up.onclick=()=>mv(-1);dn.onclick=()=>mv(1);
+      del.onclick=()=>{if(confirm('「'+q.title+'」のマスを削除しますか？')){S.sq.splice(i,1);save();render();close()}};
+      l.append(up,dn,del);
+    }
+    f.appendChild(l);
+    async function commit(){
+      q.title=ti.value.trim()||q.title;if(sel)q.cat=sel.value;
+      const mem=q.id in getMem();
+      if(pw.value){q.enc=await encText(ta.value,pw.value);q.text='';U[q.id]={pw:pw.value,text:ta.value};if(mem)remember(q.id,pw.value)}
+      else{delete q.enc;delete U[q.id];q.text=ta.value;remember(q.id,null)}
+    }
+    const c=el('button','sub','やめる');c.onclick=close;
+    const s=el('button',null,'保存');s.onclick=async()=>{await commit();save();render();close()};
+    f.append(c,s);m.appendChild(f);
+    ta.focus();
+  });
+}
+
+$('bAdd').onclick=()=>{
+  const i=S.sq.length-1;
+  S.sq.splice(i,0,{id:'u'+Date.now(),cat:'heart',title:'新しいマス',hint:'自由に書きたいことを書きましょう',text:''});
+  save();render();openEdit(i);
+};
+$('mWrite').onclick=()=>{mode='write';render()};
+$('mRead').onclick=()=>{mode='read';render()};
+$('bPrint').onclick=()=>{$('all').open=true;window.print()};
+$('bExp').onclick=()=>{
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));
+  a.download='ending-note.json';a.click();URL.revokeObjectURL(a.href);
+};
+$('bForget').onclick=()=>{
+  if(confirm('この端末に覚えさせたパスワードをすべて消します。ロックは解除されず、次回から再入力が必要になります。')){
+    setMem({});Object.keys(U).forEach(k=>delete U[k]);render();
+  }
+};
+async function autoUnlock(){
+  const m=getMem();
+  for(const q of S.sq){
+    if(q.enc&&m[q.id]){try{U[q.id]={pw:m[q.id],text:await decText(q.enc,m[q.id])}}catch(e){remember(q.id,null)}}
+  }
+  render();
+}
+$('bImp').onclick=()=>$('file').click();
+$('file').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  f.text().then(t=>{
+    const v=JSON.parse(t);
+    if(!v||!Array.isArray(v.sq)||v.sq.length<2||!v.sq.every(q=>CATS[q.cat]&&typeof q.title==='string'&&typeof q.text==='string'))throw 0;
+    if(confirm('いまのノートを、読み込んだ内容で置きかえますか？')){
+      S={sq:v.sq.map(q=>({id:String(q.id||Math.random()),cat:q.cat,title:q.title,hint:String(q.hint||''),text:q.text,...(q.enc&&q.enc.s&&q.enc.i&&q.enc.c?{enc:q.enc}:{})}))};
+      pos=0;save();render();
+    }
+  }).catch(()=>alert('読み込めませんでした。このアプリで保存したJSONを選んでください。')).finally(()=>e.target.value='');
+};
+
+/* ---- Googleログイン + Googleドライブ保存（アプリ専用の隠しフォルダ） ---- */
+function parseNote(v){
+  if(!v||!Array.isArray(v.sq)||v.sq.length<2||!v.sq.every(q=>CATS[q.cat]&&typeof q.title==='string'&&typeof q.text==='string'))return null;
+  return {sq:v.sq.map(q=>({id:String(q.id||Math.random()),cat:q.cat,title:q.title,hint:String(q.hint||''),text:q.text,...(q.enc&&q.enc.s&&q.enc.i&&q.enc.c?{enc:q.enc}:{})}))};
+}
+const gCid=()=>{try{return localStorage.getItem('endingNoteCid')||''}catch(e){return ''}};
+function setG(){$('bG').textContent=G.tok?'✓ Google連携中（ログアウト）':'Googleでログイン'}
+function gsi(){return new Promise((res,rej)=>{
+  if(window.google&&google.accounts)return res();
+  const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.onload=res;s.onerror=rej;document.head.appendChild(s);
+})}
+async function api(url,opt={}){
+  const r=await fetch(url,{...opt,headers:{...(opt.headers||{}),Authorization:'Bearer '+G.tok}});
+  if(r.status===401){G.tok=null;setG();throw new Error('401')}
+  if(!r.ok)throw new Error(r.status);
+  return r;
+}
+async function gSync(){
+  const r=await api('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id)&q='+encodeURIComponent("name='ending-note.json'"));
+  const f=(await r.json()).files[0];
+  if(f){
+    G.fileId=f.id;
+    const d=parseNote(await (await api('https://www.googleapis.com/drive/v3/files/'+f.id+'?alt=media')).json());
+    if(d&&confirm('Googleドライブに保存済みのノートがあります。読み込みますか？\n（キャンセルすると、いまのノートでドライブを上書きします）')){
+      S=d;pos=0;try{localStorage.setItem('endingNote',JSON.stringify(S))}catch(e){}
+      render();autoUnlock();return;
+    }
+  }
+  await gPush();
+}
+async function gPush(){
+  if(!G.tok)return;
+  const bd='enb'+Date.now(),meta=G.fileId?{name:'ending-note.json'}:{name:'ending-note.json',parents:['appDataFolder']};
+  const mp='--'+bd+'\r\nContent-Type: application/json\r\n\r\n'+JSON.stringify(meta)+'\r\n--'+bd+'\r\nContent-Type: application/json\r\n\r\n'+JSON.stringify(S)+'\r\n--'+bd+'--';
+  const r=await api('https://www.googleapis.com/upload/drive/v3/files'+(G.fileId?'/'+G.fileId:'')+'?uploadType=multipart&fields=id',
+    {method:G.fileId?'PATCH':'POST',headers:{'Content-Type':'multipart/related; boundary='+bd},body:mp});
+  if(!G.fileId)G.fileId=(await r.json()).id;
+}
+$('bGcfg').onclick=()=>{
+  const v=prompt('Google Cloud で作ったOAuthクライアントID（…apps.googleusercontent.com）を貼り付けてください',gCid());
+  if(v!==null)try{localStorage.setItem('endingNoteCid',v.trim())}catch(e){}
+};
+$('bG').onclick=async()=>{
+  if(G.tok){
+    if(confirm('Google連携をやめますか？（ドライブ上のノートは残ります）')){
+      try{google.accounts.oauth2.revoke(G.tok)}catch(e){}
+      G.tok=null;G.fileId=null;setG();
+    }
+    return;
+  }
+  if(!gCid()){$('bGcfg').click();if(!gCid())return}
+  try{await gsi()}catch(e){alert('Googleに接続できませんでした。');return}
+  google.accounts.oauth2.initTokenClient({
+    client_id:gCid(),scope:'https://www.googleapis.com/auth/drive.appdata',
+    callback:async r=>{
+      if(r.error){alert('ログインできませんでした（'+r.error+'）。クライアントIDと、許可したURLを確認してください。');return}
+      G.tok=r.access_token;setG();
+      try{await gSync()}catch(e){alert('ドライブとの同期に失敗しました。')}
+    }
+  }).requestAccessToken();
+};
+
+function wait(ms){return new Promise(r=>setTimeout(r,ms))}
+$('bRoll').onclick=async()=>{
+  if(busy)return;
+  if(pos>=S.sq.length-1){pos=0;render()}
+  busy=true;$('bRoll').disabled=true;
+  const d=$('dice');d.classList.add('roll');
+  for(let k=0;k<6;k++){d.textContent=1+Math.floor(Math.random()*3);await wait(90)}
+  d.classList.remove('roll');
+  const r=1+Math.floor(Math.random()*3);d.textContent=r;
+  await wait(300);
+  for(let k=0;k<r&&pos<S.sq.length-1;k++){pos++;render();await wait(280)}
+  busy=false;$('bRoll').disabled=false;
+  $('bRoll').textContent=pos>=S.sq.length-1?'もう一度はじめから':'ルーレットをまわす';
+  openCard(pos);
+};
+$('bReset').onclick=()=>{if(busy)return;pos=0;$('bRoll').textContent='ルーレットをまわす';render()};
+$('bRoll').textContent='ルーレットをまわす';
+let lastC=cols();
+window.addEventListener('resize',()=>{const c=cols();if(c!==lastC){lastC=c;render()}});
+render();
+autoUnlock();
+</script>
+</body>
+</html>
