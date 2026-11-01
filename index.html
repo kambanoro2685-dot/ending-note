@@ -383,7 +383,7 @@ function openEdit(i){
       const up=el('button','sub','◀ 前へ'),dn=el('button','sub','後ろへ ▶'),del=el('button','danger','削除');
       const mv=async d=>{const j=i+d;if(j<1||j>S.sq.length-2)return;await commit();[S.sq[i],S.sq[j]]=[S.sq[j],S.sq[i]];save();render();openEdit(j)};
       up.onclick=()=>mv(-1);dn.onclick=()=>mv(1);
-      del.onclick=()=>{if(confirm('「'+q.title+'」のマスを削除しますか？')){S.sq.splice(i,1);save();render();close()}};
+      del.onclick=()=>say('「'+q.title+'」のマスを削除しますか？',()=>{S.sq.splice(i,1);save();render()},'削除する');
       l.append(up,dn,del);
     }
     f.appendChild(l);
@@ -413,11 +413,21 @@ $('bExp').onclick=()=>{
   a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));
   a.download='ending-note.json';a.click();URL.revokeObjectURL(a.href);
 };
-$('bForget').onclick=()=>{
-  if(confirm('この端末に覚えさせたパスワードをすべて消します。ロックは解除されず、次回から再入力が必要になります。')){
-    setMem({});Object.keys(U).forEach(k=>delete U[k]);render();
-  }
-};
+/* ブラウザ標準の confirm/alert は埋め込み表示で無効になるため、ページ内ダイアログを使う */
+function say(msg,okFn,okLabel){
+  const m=$('modal');m.textContent='';
+  const h=el('div','mh');h.style.setProperty('--bgc','var(--c-start)');h.appendChild(el('h2',null,'確認'));m.appendChild(h);
+  const b=el('div','mb');b.appendChild(el('div','body',msg));m.appendChild(b);
+  const f=el('div','mf');
+  if(okFn){const c=el('button','sub','やめる');c.onclick=close;f.appendChild(c)}
+  const ok=el('button',okFn?'danger':null,okLabel||'OK');
+  ok.onclick=()=>{close();if(okFn)okFn()};
+  f.appendChild(ok);m.appendChild(f);$('ov').classList.remove('hidden');
+}
+$('bForget').onclick=()=>say('この端末に覚えさせたパスワードをすべて消します。ロックは解除されず、次回から再入力が必要になります。',()=>{
+  setMem({});Object.keys(U).forEach(k=>delete U[k]);render();
+  say('覚えたパスワードを消しました。');
+},'消す');
 async function autoUnlock(){
   const m=getMem();
   for(const q of S.sq){
@@ -431,19 +441,19 @@ $('file').onchange=e=>{
   f.text().then(t=>{
     const v=JSON.parse(t);
     if(!v||!Array.isArray(v.sq)||v.sq.length<2||!v.sq.every(q=>CATS[q.cat]&&typeof q.title==='string'&&typeof q.text==='string'))throw 0;
-    if(confirm('いまのノートを、読み込んだ内容で置きかえますか？')){
+    say('いまのノートを、読み込んだ内容で置きかえますか？',()=>{
       S={sq:v.sq.map(q=>({id:String(q.id||Math.random()),cat:q.cat,title:q.title,hint:String(q.hint||''),text:q.text,...(q.enc&&q.enc.s&&q.enc.i&&q.enc.c?{enc:q.enc}:{})}))};
       pos=0;save();render();
-    }
-  }).catch(()=>alert('読み込めませんでした。このアプリで保存したJSONを選んでください。')).finally(()=>e.target.value='');
+    },'置きかえる');
+  }).catch(()=>say('読み込めませんでした。このアプリで保存したJSONを選んでください。')).finally(()=>e.target.value='');
 };
 
 /* ---- ノートの全消去 ---- */
-$('bWipe').onclick=()=>{
-  if(!confirm('この端末に保存されたノートと、覚えさせたパスワードをすべて消します。元に戻せません。よろしいですか？'))return;
+$('bWipe').onclick=()=>say('この端末に保存されたノートと、覚えさせたパスワードをすべて消します。元に戻せません。よろしいですか？',()=>{
   try{localStorage.removeItem('endingNote');localStorage.removeItem('endingNotePw')}catch(e){}
   S={sq:DEFAULTS.map(mk)};Object.keys(U).forEach(k=>delete U[k]);pos=0;render();
-};
+  say('すべて消去しました。');
+},'すべて消す');
 
 /* ---- 利用規約・プライバシーポリシーへの同意（最後まで読まないとチェック不可） ---- */
 const TV='2026-11-01';
