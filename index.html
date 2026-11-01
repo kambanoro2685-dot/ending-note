@@ -81,7 +81,7 @@ details.all summary{cursor:pointer;font-weight:700}
 #tBox h3{margin:1.2em 0 .2em;font-size:.95rem}#tBox p,#tBox li{margin:.2em 0}#tBox ol,#tBox ul{padding-left:1.4em;margin:.2em 0}
 #tChkWrap{margin-right:auto;font-size:.9rem;display:flex;gap:6px;align-items:center}
 .note a{color:var(--accent)}
-#bForget{background:#2a8a7e;color:#fff;border-color:#2a8a7e}
+#bForget{background:#d24b43;color:#fff;border-color:#d24b43}
 @media(max-width:600px){header h1{font-size:1.3rem}}
 @media print{
   .bar,.board,.play,.hint,.ov,.note{display:none!important}
@@ -109,6 +109,7 @@ details.all summary{cursor:pointer;font-weight:700}
       <button class="sub" id="bImp">読み込み</button>
       <button class="sub" id="bPrint">印刷</button>
       <button class="sub" id="bForget">覚えたパスワードを消して他の人に見られないようにする</button>
+      <button class="sub" id="bLockAll">🔒 全マスにまとめてパスワードをかけて保存</button>
       <button class="sub" id="bWipe">すべて消去</button>
       <input type="file" id="file" accept=".json,application/json" hidden>
     </div>
@@ -169,7 +170,7 @@ details.all summary{cursor:pointer;font-weight:700}
 <h3>第3条（データの消失とバックアップ）</h3>
 <p>ノートは、この端末のブラウザ内にしか存在しません。次の場合などに、ノートは失われることがあります：端末の故障・紛失・買い替え、ブラウザの設定やサイトデータの削除、ブラウザの更新や不具合、シークレットウィンドウの使用。大切な内容は、「保存(JSON)」や印刷で、ご自身の責任でバックアップしてください。運営者はデータを預かっておらず、復元できません。</p>
 <h3>第4条（パスワード）</h3>
-<p>マスごとのパスワードを忘れると、そのマスの内容は誰にも読めなくなります。運営者にも復元できません。パスワードの管理はご自身の責任で行い、本アプリには、パスワード、暗証番号、口座番号そのものを書かず、「控えをしまっている場所」を書くことをおすすめします。</p>
+<p>マスごとのパスワードを忘れると、そのマスの内容は誰にも読めなくなります。運営者にも復元できません。パスワードの管理はご自身の責任で行い、「全マスにまとめてパスワードをかけて保存」を使うと、複数のマスに同じパスワードがかかります（そのパスワードを忘れると、それらのマスをまとめて読めなくなります）。本アプリには、パスワード、暗証番号、口座番号そのものを書かず、「控えをしまっている場所」を書くことをおすすめします。</p>
 <h3>第5条（端末の管理）</h3>
 <p>端末にアクセスできる人は、ノートのうちロックされていないマスを読める可能性があります。端末の画面ロック等のセキュリティ対策は、ご自身で行ってください。</p>
 <h3>第6条（禁止事項）</h3>
@@ -447,6 +448,21 @@ $('file').onchange=e=>{
       pos=0;save();render();
     },'置きかえる');
   }).catch(()=>say('読み込めませんでした。このアプリで保存したJSONを選んでください。')).finally(()=>e.target.value='');
+};
+
+/* ---- 全マスへの一括パスワード ---- */
+$('bLockAll').onclick=()=>{
+  formDlg('全マスにまとめてパスワードをかける',
+    '記入ずみで、まだロックされていないすべてのマスに、同じパスワードをかけて保存します。\n（すでに個別のパスワードがあるマスと、空白のマスは、そのままです）\n\nかけたあとは、読むにも書くにもこのパスワードが必要です。忘れると、そのマスは誰にも読めなくなります。',
+    ['まとめてかけるパスワード（4文字以上）','もう一度入力'],'まとめてロックして保存',async v=>{
+      if(v[0].length<4)return '4文字以上で入力してください。';
+      if(v[0]!==v[1])return '2つが一致しません。';
+      const targets=S.sq.filter(q=>!q.enc&&q.text.trim());
+      if(!targets.length)return 'ロックできる記入ずみのマスがありません。';
+      for(const q of targets){q.enc=await encText(q.text,v[0]);q.text='';delete U[q.id];remember(q.id,null)}
+      save();render();close();
+      say(targets.length+'マスに同じパスワードをかけて保存しました。\n読むときは、各マスでパスワードを入力してください。');
+    });
 };
 
 /* ---- ノートの全消去 ---- */
